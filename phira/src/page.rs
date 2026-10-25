@@ -1,6 +1,9 @@
 pub mod coll;
 pub use coll::CollectionPage;
 
+mod verify;
+pub use verify::VerifyPage;
+
 mod event;
 pub use event::EventPage;
 
@@ -515,6 +518,11 @@ pub enum NextPage {
 
 pub trait Page {
     fn label(&self) -> Cow<'static, str>;
+
+        /// 是否阻断返回按钮（如验证页）
+    fn is_blocking(&self) -> bool {
+        false
+    }
 
     fn can_play_bgm(&self) -> bool {
         true
