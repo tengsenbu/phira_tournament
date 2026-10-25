@@ -187,7 +187,7 @@ async fn the_main() -> Result<()> {
 
     #[cfg(target_os = "android")]
     {
-        let pkg_name = "com.teamflos.phira.tournament";
+        let pkg_name = "org.flos.phira";
         let path = format!("/data/data/{}/files", pkg_name);
         std::fs::create_dir_all(&path).ok();
         *DATA_PATH.lock().unwrap() = Some(path.clone());
