@@ -54,7 +54,7 @@ jobs:
           cd phira
           cargo ndk -t arm64-v8a --platform 35 build --release
 
-      -       - name: Patch Official APK
+      - name: Patch Official APK
         run: |
           # 1. 设置 build-tools 到 PATH
           export PATH=$ANDROID_HOME/build-tools/34.0.0:$PATH
