@@ -87,11 +87,15 @@ pub struct Config {
 
     // for compatibility
     autoplay: Option<bool>,
+
+    #[serde(default)]
+    pub tournament_mode: bool,
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self {
+            tournament_mode: false,
             adjust_time: false,
             aggressive: true,
             ap_fc_indicator: true,
