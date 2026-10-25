@@ -2647,7 +2647,7 @@ impl Scene for SongScene {
         ui.fill_rect(ui.screen_rect(), (*self.illu.texture.1, ui.screen_rect()));
         ui.fill_rect(ui.screen_rect(), semi_black(0.55));
 
-
+        let r = ui.back_rect();
 
         let alpha = fade_in_time().map_or(1., |tt| ((t - self.fade_start) / tt).clamp(-1., 0.) + 1.);
         ui.alpha::<Result<()>>(alpha, |ui| {
