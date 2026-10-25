@@ -4,6 +4,7 @@ prpr_l10n::tl_file!("common" ttl crate::);
 #[cfg(closed)]
 mod inner;
 
+mod tournament;
 mod anim;
 mod censor;
 mod charts_view;
@@ -183,6 +184,15 @@ async fn the_main() -> Result<()> {
 
     init_assets();
 
+    #[cfg(target_os = "android")]
+    {
+        let pkg_name = "com.teamflos.phira.tournament";
+        let path = format!("/data/data/{}/files", pkg_name);
+        std::fs::create_dir_all(&path).ok();
+        *DATA_PATH.lock().unwrap() = Some(path.clone());
+        *CACHE_DIR.lock().unwrap() = Some(format!("{}/cache", path));
+    }
+
     let rt = tokio::runtime::Builder::new_multi_thread()
         .worker_threads(4)
         .enable_all()
@@ -208,6 +218,12 @@ async fn the_main() -> Result<()> {
         .unwrap_or_default();
     data.init().await?;
     set_data(data);
+    get_data_mut().config.tournament_mode = true;
+    if !get_data().tournament_initialized {
+        crate::tournament::import_pez("pez1.pez").await?;
+        get_data_mut().tournament_initialized = true;
+        save_data()?;
+    }
     sync_data();
     save_data()?;
 
