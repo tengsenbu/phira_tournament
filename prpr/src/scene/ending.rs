@@ -20,6 +20,7 @@ use std::{cell::RefCell, ops::DerefMut};
 
 #[derive(Deserialize)]
 pub struct RecordUpdateState {
+    pub struct TournamentProceed;
     pub best: bool,
     pub improvement: u32,
     pub gain_exp: f32,
@@ -63,6 +64,8 @@ pub struct EndingScene {
     tr_start: f32,
 
     avg_fps: Option<f32>,
+
+    pub tournament_proceed: bool,
 }
 
 impl EndingScene {
@@ -99,6 +102,7 @@ impl EndingScene {
             .as_ref()
             .and_then(|f| record_data.clone().map(|data| (f(data), show_message(tl!("uploading")).handle())));
         Ok(Self {
+            tournament_proceed: config.tournament_mode,
             background,
             illustration,
             player,
@@ -686,7 +690,9 @@ impl Scene for EndingScene {
             0 => NextScene::None,
             1 => NextScene::Pop,
             2 => {
-                if let Some(rec) = &self.best_record {
+                if self.tournament_proceed {
+                    NextScene::PopNWithResult(2, Box::new(TournamentProceed))
+                } else if let Some(rec) = &self.best_record {
                     NextScene::PopNWithResult(2, Box::new(rec.clone()))
                 } else {
                     NextScene::PopN(2)
