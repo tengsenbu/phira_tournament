@@ -1589,6 +1589,11 @@ impl SongScene {
 
 impl Scene for SongScene {
     fn on_result(&mut self, tm: &mut TimeManager, res: Box<dyn Any>) -> Result<()> {
+                // 比赛流程：把 TournamentProceed 继续往上传
+        if res.downcast_ref::<prpr::scene::TournamentProceed>().is_some() {
+            self.next_scene = Some(NextScene::PopWithResult(Box::new(prpr::scene::TournamentProceed)));
+            return Ok(());
+        }
         let res = match res.downcast::<SimpleRecord>() {
             Err(res) => res,
             Ok(rec) => {
@@ -1801,11 +1806,7 @@ impl Scene for SongScene {
             }
             return Ok(false);
         }
-        if self.back_btn.touch(touch) {
-            button_hit();
-            self.next_scene = Some(NextScene::PopWithResult(Box::new(false)));
-            return Ok(true);
-        }
+        
         if self.scene_task.is_none() && self.next_scene.is_none() && self.play_btn.touch(touch, t) {
             if self.local_path.is_some() {
                 self.launch(GameMode::Normal, false)?;
@@ -2646,9 +2647,7 @@ impl Scene for SongScene {
         ui.fill_rect(ui.screen_rect(), (*self.illu.texture.1, ui.screen_rect()));
         ui.fill_rect(ui.screen_rect(), semi_black(0.55));
 
-        let r = ui.back_rect();
-        self.back_btn.set(ui, r);
-        ui.fill_rect(r, (*self.icons.back, r, ScaleType::Fit));
+
 
         let alpha = fade_in_time().map_or(1., |tt| ((t - self.fade_start) / tt).clamp(-1., 0.) + 1.);
         ui.alpha::<Result<()>>(alpha, |ui| {
