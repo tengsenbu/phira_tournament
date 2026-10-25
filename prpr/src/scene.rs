@@ -4,7 +4,7 @@
 prpr_l10n::tl_file!("scene" ttl);
 
 mod ending;
-pub use ending::{EndingScene, RecordUpdateState};
+pub use ending::{EndingScene, RecordUpdateState, TournamentProceed};
 
 mod game;
 pub use game::{GameMode, GameScene, SimpleRecord};
