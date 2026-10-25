@@ -693,12 +693,7 @@ impl Scene for MainScene {
                             }
                         }
                     }
-                    if let Some((item, local_path)) = crate::tournament::take_pending_song() {
-                        self.pending_song = Some((item, local_path));
-                        if self.pages.len() > 1 && self.pages.last().unwrap().is_blocking() {
-                            self.pages.pop();
-                        }
-                    }
+
                     Ok(())
                 }));
             }
@@ -778,6 +773,13 @@ impl Scene for MainScene {
             std::fs::write(position_file()?, format!("{},{}", self.mp_btn_pos.x, self.mp_btn_pos.y))?;
             self.mp_save_pos_at = None;
         }
+
+            if let Some((item, local_path)) = crate::tournament::take_pending_song() {
+                self.pending_song = Some((item, local_path));
+                if self.pages.len() > 1 && self.pages.last().unwrap().is_blocking() {
+                self.pages.pop();
+                }
+            }
 
         Ok(())
     }
