@@ -137,6 +137,9 @@ pub struct Data {
 
     #[serde(skip)]
     collection_cache: DashMap<Uuid, Arc<LocalCollection>>,
+    
+    #[serde(default)]
+    pub tournament_initialized: bool,
 }
 
 impl Data {
