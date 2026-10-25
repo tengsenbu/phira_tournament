@@ -108,6 +108,9 @@ jobs:
 
       - name: Build APK with Gradle
         run: |
+          # ⚠️ 加这一行，强行指定 SDK 路径，解决冲突
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+          
           cat << 'EOF' > build.gradle
           buildscript {
               repositories { google(); mavenCentral() }
