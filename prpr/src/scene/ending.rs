@@ -27,6 +27,8 @@ pub struct RecordUpdateState {
     pub new_rks: Option<f32>,
 }
 
+pub struct TournamentProceed;
+
 pub struct EndingScene {
     background: SafeTexture,
     illustration: SafeTexture,
@@ -65,7 +67,6 @@ pub struct EndingScene {
 
     avg_fps: Option<f32>,
 
-    pub tournament_proceed: bool,
 }
 
 impl EndingScene {
