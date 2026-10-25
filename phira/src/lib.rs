@@ -220,6 +220,13 @@ async fn the_main() -> Result<()> {
     data.init().await?;
     set_data(data);
 
+    get_data_mut().config.tournament_mode = true;
+    if !get_data().tournament_initialized {
+        crate::tournament::import_pez("pez1.pez").await?;
+        get_data_mut().tournament_initialized = true;
+        save_data()?;
+    }
+
     sync_data();
     save_data()?;
 
