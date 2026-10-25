@@ -1,0 +1,128 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  ANDROID_HOME: ${{ github.workspace }}/android-sdk
+  NDK_VERSION: 27.0.12077973
+  ANDROID_NDK_HOME: ${{ github.workspace }}/android-sdk/ndk/${{ env.NDK_VERSION }}
+  ANDROID_NDK_ROOT: ${{ github.workspace }}/android-sdk/ndk/${{ env.NDK_VERSION }}
+
+jobs:
+  Build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libasound2-dev libssl-dev pkg-config
+
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Install Android SDK & NDK
+        run: |
+          mkdir -p $ANDROID_HOME/cmdline-tools
+          wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+          unzip -q commandlinetools-linux-11076708_latest.zip -d $ANDROID_HOME/cmdline-tools
+          mv $ANDROID_HOME/cmdline-tools/cmdline-tools $ANDROID_HOME/cmdline-tools/latest
+          echo y | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_HOME "platform-tools" "build-tools;34.0.0" "platforms;android-35"
+          echo y | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_HOME "ndk;${{ env.NDK_VERSION }}"
+
+      - name: Install Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+
+      - name: Install Cargo NDK
+        run: cargo install cargo-ndk
+
+      - name: Build Rust Library (.so)
+        run: |
+          cd phira
+          cargo ndk -t arm64-v8a --platform 35 build --release
+
+      - name: Prepare Android Project
+        run: |
+          # 1. 创建 Android 工程目录结构
+          mkdir -p app/src/main/java/com/teamflos/phira/tournament
+          mkdir -p app/src/main/jniLibs/arm64-v8a
+          mkdir -p app/src/main/assets
+          
+          # 2. 拷贝编译好的 .so
+          cp ../target/aarch64-linux-android/release/libphira.so app/src/main/jniLibs/arm64-v8a/
+          # 把 NDK 里的 libc++_shared.so 也拷过去
+          cp $ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_shared.so app/src/main/jniLibs/arm64-v8a/
+          
+          # 3. 拷贝 assets
+          cp -r ../assets/* app/src/main/assets/
+          
+          # 4. 生成极简 MainActivity.kt (如果你的仓库里自带了 Android 工程，这一步可以删掉)
+          cat << 'EOF' > app/src/main/java/com/teamflos/phira/tournament/MainActivity.kt
+          package com.teamflos.phira.tournament
+          import android.app.NativeActivity
+          import android.os.Bundle
+          class MainActivity : NativeActivity() {
+              override fun onCreate(savedInstanceState: Bundle?) {
+                  super.onCreate(savedInstanceState)
+              }
+          }
+          EOF
+          
+          # 5. 生成极简 AndroidManifest.xml (如果仓库里自带了，这一步可以删掉)
+          mkdir -p app/src/main
+          cat << 'EOF' > app/src/main/AndroidManifest.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <application android:label="Phira Tournament">
+                  <activity android:name=".MainActivity" android:exported="true" android:configChanges="orientation|keyboardHidden|screenSize" android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF
+
+      - name: Build APK with Gradle
+        run: |
+          # 生成一个最小的 build.gradle 用于打包
+          cat << 'EOF' > app/build.gradle
+          plugins { id 'com.android.application' }
+          android {
+              namespace 'com.teamflos.phira.tournament'
+              compileSdk 35
+              defaultConfig {
+                  applicationId "com.teamflos.phira.tournament"
+                  minSdk 24
+                  targetSdk 35
+                  versionCode 1
+                  versionName "1.0"
+                  ndk { abiFilters 'arm64-v8a' }
+              }
+              sourceSets { main { jniLibs.srcDirs = ['src/main/jniLibs'] } }
+          }
+          EOF
+          
+          # 下载 Gradle 并打包
+          wget -q https://services.gradle.org/distributions/gradle-8.7-bin.zip
+          unzip -q gradle-8.7-bin.zip
+          ./gradle-8.7/bin/gradle :app:assembleRelease
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Phira-Tournament-APK
+          path: app/build/outputs/apk/release/app-release-unsigned.apk
