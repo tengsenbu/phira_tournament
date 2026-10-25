@@ -56,20 +56,31 @@ jobs:
 
       - name: Prepare Android Project
         run: |
-          # 1. 创建 Android 工程结构
           mkdir -p app/src/main/java/com/teamflos/phira/tournament
           mkdir -p app/src/main/jniLibs/arm64-v8a
           mkdir -p app/src/main/assets
           
-          # 2. 拷贝编译好的 .so
-          cp ../target/aarch64-linux-android/release/libphira.so app/src/main/jniLibs/arm64-v8a/
-          # 从 NDK 拷贝 C++ 运行库
+          echo "=== 正在搜寻 libphira.so ==="
+          # 自动在 target 目录里寻找 .so，防止路径不一致
+          SO_PATH=$(find target -name "libphira.so" | head -n 1)
+          if [ -z "$SO_PATH" ]; then
+            echo "❌ 依然没找到 .so"
+            exit 1
+          fi
+          echo "✅ 找到 .so: $SO_PATH"
+          cp "$SO_PATH" app/src/main/jniLibs/arm64-v8a/
+          
           cp $ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_shared.so app/src/main/jniLibs/arm64-v8a/
           
-          # 3. 拷贝 assets
-          cp -r ../assets/* app/src/main/assets/
+          # 拷贝 assets (兼容 assets 在根目录还是在 phira 目录)
+          if [ -d "assets" ]; then
+            cp -r assets/* app/src/main/assets/
+          elif [ -d "phira/assets" ]; then
+            cp -r phira/assets/* app/src/main/assets/
+          else
+            echo "⚠️ 找不到 assets 文件夹，请检查你的仓库结构！"
+          fi
           
-          # 4. 生成 MainActivity.kt
           cat << 'EOF' > app/src/main/java/com/teamflos/phira/tournament/MainActivity.kt
           package com.teamflos.phira.tournament
           import android.app.NativeActivity
@@ -81,7 +92,6 @@ jobs:
           }
           EOF
           
-          # 5. 生成 AndroidManifest.xml
           cat << 'EOF' > app/src/main/AndroidManifest.xml
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
@@ -98,7 +108,6 @@ jobs:
 
       - name: Build APK with Gradle
         run: |
-          # 生成根目录 Gradle 配置
           cat << 'EOF' > build.gradle
           buildscript {
               repositories { google(); mavenCentral() }
@@ -113,7 +122,6 @@ jobs:
           include ':app'
           EOF
 
-          # 生成 app 的 Gradle 配置
           cat << 'EOF' > app/build.gradle
           plugins { id 'com.android.application' }
           android {
@@ -132,7 +140,6 @@ jobs:
           }
           EOF
           
-          # 下载 Gradle 并打包
           wget -q https://services.gradle.org/distributions/gradle-8.7-bin.zip
           unzip -q gradle-8.7-bin.zip
           ./gradle-8.7/bin/gradle :app:assembleRelease
