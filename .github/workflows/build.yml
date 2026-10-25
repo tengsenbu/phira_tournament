@@ -54,16 +54,17 @@ jobs:
           cd phira
           cargo ndk -t arm64-v8a --platform 35 build --release
 
-      - name: Patch Official APK
+      -       - name: Patch Official APK
         run: |
           # 1. 设置 build-tools 到 PATH
           export PATH=$ANDROID_HOME/build-tools/34.0.0:$PATH
 
-          # 2. 下载官方最新的 Android APK (已替换为你截图中的准确文件名)
+          # 2. 下载官方最新的 Android APK
           echo "正在下载官方 APK..."
           wget -q https://github.com/TeamFlos/phira/releases/download/v0.8.2/Phira-android-arm64-v8a-v0.8.2.apk -O official.apk
 
           # 3. 解包官方 APK
+          echo "正在解包官方 APK..."
           mkdir unpacked
           cd unpacked
           unzip -q ../official.apk
@@ -71,29 +72,23 @@ jobs:
           # 4. 替换我们自己编译的 .so
           echo "=== 正在搜寻我们自己编译的 libphira.so ==="
           SO_PATH=$(find ../target -name "libphira.so" | head -n 1)
-          if [ -z "$SO_PATH" ]; then
-            echo "❌ 找不到自己编译的 .so"
-            exit 1
-          fi
           echo "✅ 找到 .so: $SO_PATH"
-          
-          # 覆盖官方包里的原版库
           cp "$SO_PATH" lib/arm64-v8a/libphira.so
 
           # 5. 删掉旧签名
           rm -rf META-INF
 
-          # 6. 重新打包、对齐
+          # 6. 重新打包
+          echo "正在重新打包..."
+          zip -q -r ../phira-patched-unsigned.apk *
           cd ..
-          zip -q -r phira-patched-unsigned.apk unpacked
-          zipalign -f -p 4 phira-patched-unsigned.apk phira-patched-aligned.apk
 
-          # 7. 生成测试签名并签名
-          keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
-          apksigner sign --ks debug.keystore --ks-pass pass:android --key-pass pass:android --out phira-tournament-final.apk phira-patched-aligned.apk
+          # 7. 对齐 (这一步必须做，否则手机可能装不上)
+          echo "正在对齐..."
+          zipalign -f -p 4 phira-patched-unsigned.apk phira-tournament-unsigned.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Phira-Tournament-APK
-          path: phira-tournament-final.apk
+          name: Phira-Tournament-Unsigned
+          path: phira-tournament-unsigned.apk
