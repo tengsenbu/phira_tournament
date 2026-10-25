@@ -85,11 +85,13 @@ pub struct Config {
     pub volume_music: f32,
     pub volume_sfx: f32,
 
+    #[serde(default)]
+    pub tournament_mode: bool,
+
     // for compatibility
     autoplay: Option<bool>,
 
-    #[serde(default)]
-    pub tournament_mode: bool,
+
 }
 
 impl Default for Config {
