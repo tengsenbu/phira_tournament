@@ -4,7 +4,7 @@ prpr_l10n::tl_file!("common" ttl crate::);
 #[cfg(closed)]
 mod inner;
 
-mod tournament;
+
 mod anim;
 mod censor;
 mod charts_view;
@@ -25,6 +25,7 @@ mod tabs;
 mod tags;
 mod threed;
 mod uml;
+mod tournament;
 
 use anyhow::Result;
 use data::Data;
