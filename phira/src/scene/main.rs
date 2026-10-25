@@ -815,7 +815,7 @@ impl Scene for MainScene {
         s.fader.for_sub(|f| f.render_title(ui, s.t, &self.pages.last().unwrap().label()));
 
         // 3. back
-        if self.pages.len() >= 2 && !self.pages.last().unwrap().is_blocking() { {
+        if self.pages.len() >= 2 && !self.pages.last().unwrap().is_blocking() { 
             let r = ui.back_rect();
             self.btn_back.set(ui, r);
             let dy = (match self.pages.len() {
