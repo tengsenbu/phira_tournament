@@ -1,3 +1,4 @@
+use prpr::config::Mods;
 use super::{import_chart, L10N_LOCAL};
 use crate::{
     charts_view::NEED_UPDATE,
