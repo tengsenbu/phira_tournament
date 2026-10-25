@@ -58,6 +58,8 @@ fn position_file() -> Result<String> {
 pub struct MainScene {
     state: SharedState,
 
+    pending_song: Option<(ChartItem, String)>,
+
     bgm: Option<Music>,
 
     background: SafeTexture,
@@ -195,6 +197,8 @@ impl MainScene {
             batch_import_rx: None,
             batch_imported_charts: Vec::new(),
             batch_import_total: 0,
+
+            pending_song: None,
         })
     }
 
@@ -214,6 +218,22 @@ impl MainScene {
 
 impl Scene for MainScene {
     fn on_result(&mut self, _tm: &mut TimeManager, result: Box<dyn Any>) -> Result<()> {
+        if result.downcast_ref::<prpr::scene::TournamentProceed>().is_some() {
+            let step = crate::tournament::current();
+            if step >= 2 {
+                // 打完 pez3，比赛结束
+                crate::tournament::reset();
+                self.pages.truncate(1);
+                return self.pages.last_mut().unwrap().on_result(result, &mut self.state);
+            }
+            let code = if step == 0 { "thule" } else { "text" };
+            self.pages.push(Box::new(crate::page::VerifyPage::new(
+                self.icons.clone(),
+                code.to_string(),
+                step,
+            )));
+            return Ok(());
+        }
         self.pages.last_mut().unwrap().on_result(result, &mut self.state)
     }
 
@@ -319,7 +339,7 @@ impl Scene for MainScene {
         if self.pages.last_mut().unwrap().touch(touch, s)? {
             return Ok(true);
         }
-        if self.btn_back.touch(touch) && self.pages.len() > 1 {
+        if !self.pages.last().unwrap().is_blocking() && self.btn_back.touch(touch) && self.pages.len() > 1 { 
             button_hit();
             if !self.pages.last_mut().unwrap().on_back_pressed(&mut self.state) {
                 if self.pages.len() == 2 {
@@ -673,6 +693,12 @@ impl Scene for MainScene {
                             }
                         }
                     }
+                    if let Some((item, local_path)) = crate::tournament::take_pending_song() {
+                        self.pending_song = Some((item, local_path));
+                        if self.pages.len() > 1 && self.pages.last().unwrap().is_blocking() {
+                            self.pages.pop();
+                        }
+                    }
                     Ok(())
                 }));
             }
@@ -789,7 +815,7 @@ impl Scene for MainScene {
         s.fader.for_sub(|f| f.render_title(ui, s.t, &self.pages.last().unwrap().label()));
 
         // 3. back
-        if self.pages.len() >= 2 {
+        if self.pages.len() >= 2 && !self.pages.last().unwrap().is_blocking() { {
             let r = ui.back_rect();
             self.btn_back.set(ui, r);
             let dy = (match self.pages.len() {
@@ -840,6 +866,18 @@ impl Scene for MainScene {
     }
 
     fn next_scene(&mut self, _tm: &mut TimeManager) -> NextScene {
+        if let Some((item, local_path)) = self.pending_song.take() {
+            if let Some(bgm) = &mut self.bgm {
+                let _ = bgm.fade_out(0.5);
+            }
+            return NextScene::Overlay(Box::new(SongScene::new(
+                item,
+                Some(local_path),
+                self.icons.clone(),
+                self.state.icons.clone(),
+                Mods::default(),
+            )));
+        }    
         if let Some(next) = self.deeplink_scene.take() {
             if let Some(bgm) = &mut self.bgm {
                 let _ = bgm.fade_out(0.5);
