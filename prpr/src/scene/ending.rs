@@ -20,7 +20,6 @@ use std::{cell::RefCell, ops::DerefMut};
 
 #[derive(Deserialize)]
 pub struct RecordUpdateState {
-    pub struct TournamentProceed;
     pub best: bool,
     pub improvement: u32,
     pub gain_exp: f32,
@@ -67,6 +66,7 @@ pub struct EndingScene {
 
     avg_fps: Option<f32>,
 
+    pub tournament_proceed: bool,
 }
 
 impl EndingScene {
