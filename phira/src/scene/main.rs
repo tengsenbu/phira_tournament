@@ -108,23 +108,21 @@ impl MainScene {
     pub async fn new(fallback: FontArc) -> Result<Self> {
         Self::init().await?;
 
-        #[cfg(closed)]
         let bgm = {
-            let bgm_clip = AudioClip::new(crate::load_res("res/bgm").await)?;
+            let clip = AudioClip::new(load_file("bg.mp3").await?)?;
             Some(UI_AUDIO.with(|it| {
                 it.borrow_mut().create_music(
-                    bgm_clip,
+                    clip,
                     sasa::MusicParams {
                         amplifier: get_data().config.volume_bgm,
-                        loop_mix_time: 5.46,
+                        loop_mix_time: 1.0,
                         command_buffer_size: 64,
                         ..Default::default()
                     },
                 )
             })?)
         };
-        #[cfg(not(closed))]
-        let bgm = None;
+
 
         let mut sf = Self::new_inner(bgm, fallback).await?;
         sf.pages.push(Box::new(HomePage::new(Arc::clone(&sf.icons)).await?));
