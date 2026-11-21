@@ -227,7 +227,7 @@ impl Scene for MainScene {
                 self.pages.truncate(1);
                 return self.pages.last_mut().unwrap().on_result(result, &mut self.state);
             }
-            let code = if step == 0 { "thule" } else { "text" };
+            let code = if step == 0 { "know" } else { "thule" };
             self.pages.push(Box::new(crate::page::VerifyPage::new(
                 self.icons.clone(),
                 code.to_string(),
