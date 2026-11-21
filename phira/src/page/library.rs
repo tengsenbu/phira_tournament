@@ -166,6 +166,26 @@ pub struct LibraryPage {
     export_total: usize,
 }
 
+fn render_vignette(ui: &mut Ui) {
+    let screen = ui.screen_rect();
+    let layers = 20;
+    let max_thick = 0.16;
+    let max_alpha = 0.10;
+
+    for i in 0..layers {
+        let k = i as f32 / layers as f32;
+        let thick = max_thick * (1. - k);
+        let alpha = max_alpha * (1. - k);
+        let c = semi_black(alpha);
+        let tw = thick * screen.w;
+        let th = thick * screen.h;
+        ui.fill_rect(Rect::new(screen.x, screen.y, screen.w, th), c);
+        ui.fill_rect(Rect::new(screen.x, screen.bottom() - th, screen.w, th), c);
+        ui.fill_rect(Rect::new(screen.x, screen.y, tw, screen.h), c);
+        ui.fill_rect(Rect::new(screen.right() - tw, screen.y, tw, screen.h), c);
+    }
+}
+
 impl LibraryPage {
     pub fn new(icons: Arc<Icons>, rank_icons: [SafeTexture; 8]) -> Result<Self> {
         NEED_UPDATE.store(true, Ordering::Relaxed);
@@ -1622,6 +1642,7 @@ impl Page for LibraryPage {
         self.manage_fav_menu.render(ui, t, 1.);
         self.tags.render(ui, t);
         self.rating.render(ui, t);
+        render_vignette(ui);
         Ok(())
     }
 
